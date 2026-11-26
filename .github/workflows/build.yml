@@ -93,6 +93,19 @@ jobs:
                modules -j$(nproc) 2>&1 | tee ../build.log
           exit ${PIPESTATUS[0]}
 
+      - name: Strip module
+        run: |
+          cd 8723du
+          if [ -f 8723du.ko ]; then
+            echo "before: $(stat -c%s 8723du.ko) bytes"
+            arm-linux-gnueabihf-strip --strip-debug 8723du.ko
+            echo "after : $(stat -c%s 8723du.ko) bytes"
+            echo "--- vermagic after strip ---"
+            strings 8723du.ko | grep -m1 "^vermagic=" || echo "WARNING: vermagic lost!"
+          else
+            echo "no .ko produced, skipping strip"
+          fi
+
       - name: Inspect result
         if: always()
         run: |
