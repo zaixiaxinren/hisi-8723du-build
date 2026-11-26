@@ -2770,6 +2770,7 @@ static int cfg80211_rtw_leave_ibss(struct wiphy *wiphy, struct net_device *ndev)
 {
 	struct adapter *adapt = (struct adapter *)rtw_netdev_priv(ndev);
 	struct wireless_dev *rtw_wdev = adapt->rtw_wdev;
+	struct rtw_wdev_priv *pwdev_priv = adapter_wdev_data(adapt);
 	enum nl80211_iftype old_type;
 	int ret = 0;
 
@@ -3014,6 +3015,7 @@ static int cfg80211_rtw_disconnect(struct wiphy *wiphy, struct net_device *ndev,
 				   u16 reason_code)
 {
 	struct adapter *adapt = (struct adapter *)rtw_netdev_priv(ndev);
+	struct rtw_wdev_priv *pwdev_priv = adapter_wdev_data(adapt);
 
 	RTW_INFO(FUNC_NDEV_FMT" - Start to Disconnect\n", FUNC_NDEV_ARG(ndev));
 
