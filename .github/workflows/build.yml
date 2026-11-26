@@ -29,14 +29,17 @@ jobs:
           tar xf linux-3.18.24.tar.xz
           echo "kernel tree ready"
 
-      - name: Patch headers for gcc 6-13
+      - name: Patch kernel for modern gcc
         run: |
           cd linux-3.18.24
-          echo "3.18 only ships compiler-gcc{3,4,5}.h, add aliases for newer gcc"
+          echo "--- 3.18 only ships compiler-gcc{3,4,5}.h, add aliases for newer gcc ---"
           for v in 6 7 8 9 10 11 12 13; do
             printf '#include <linux/compiler-gcc5.h>\n' > include/linux/compiler-gcc${v}.h
           done
           ls -1 include/linux/compiler-gcc*.h
+          echo "--- gcc 10+ defaults to -fno-common, breaks dtc yylloc; restore -fcommon for host tools ---"
+          sed -i 's/^HOSTCFLAGS\(.*\)= -Wall/HOSTCFLAGS\1= -fcommon -Wall/' Makefile
+          grep -n "^HOSTCFLAGS" Makefile | head -3
 
       - name: Configure kernel to match target vermagic
         run: |
