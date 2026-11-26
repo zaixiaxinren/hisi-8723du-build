@@ -4,7 +4,11 @@
 #ifndef __COMMON_H2C_H__
 #define __COMMON_H2C_H__
 
-#include <linux/bitfield.h>
+/*
+ * <linux/bitfield.h> only exists since Linux 4.12.
+ * This driver does not use FIELD_GET()/FIELD_PREP() anywhere, so the
+ * include is simply dropped rather than back-porting the header.
+ */
 
 /* ---------------------------------------------------------------------------------------------------------
  * ----------------------------------    H2C CMD DEFINITION    ------------------------------------------------
