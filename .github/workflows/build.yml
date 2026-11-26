@@ -63,9 +63,16 @@ jobs:
       - name: modules_prepare
         run: |
           cd linux-3.18.24
-          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules_prepare -j$(nproc) 2>&1 | tail -30
-          echo "--- verify generated headers ---"
-          ls -l include/generated/autoconf.h include/generated/utsrelease.h 2>/dev/null || true
+          echo "=== make prepare (generates include/generated/bounds.h) ==="
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- prepare -j$(nproc) 2>&1 | tail -25
+          echo "=== make modules_prepare ==="
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules_prepare -j$(nproc) 2>&1 | tail -25
+          echo "=== verify generated headers ==="
+          ls -l include/generated/ | head -25
+          echo "--- critical files ---"
+          for f in include/generated/autoconf.h include/generated/utsrelease.h include/generated/bounds.h; do
+            if [ -f "$f" ]; then echo "  OK   $f"; else echo "  MISS $f"; fi
+          done
           cat include/generated/utsrelease.h 2>/dev/null || true
 
       - name: Build 8723du module
