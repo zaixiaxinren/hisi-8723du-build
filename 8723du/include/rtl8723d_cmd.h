@@ -4,6 +4,13 @@
 #ifndef __RTL8723D_CMD_H__
 #define __RTL8723D_CMD_H__
 
+/*
+ * This header uses le16p_replace_bits()/u8p_replace_bits() without including
+ * anything itself.  Pull in the backport explicitly so it also works when
+ * this file is included on its own.
+ */
+#include "linux/bitfield.h"
+
 /* ---------------------------------------------------------------------------------------------------------
  * ----------------------------------    H2C CMD DEFINITION    ------------------------------------------------
  * --------------------------------------------------------------------------------------------------------- */

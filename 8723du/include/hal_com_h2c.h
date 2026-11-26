@@ -5,10 +5,12 @@
 #define __COMMON_H2C_H__
 
 /*
- * <linux/bitfield.h> only exists since Linux 4.12.
- * This driver does not use FIELD_GET()/FIELD_PREP() anywhere, so the
- * include is simply dropped rather than back-porting the header.
+ * <linux/bitfield.h> only exists since Linux 4.12, and the
+ * u8p_replace_bits()/u8_get_bits() helpers only since 4.16.
+ * Use the quoted form so the driver's own include/linux/bitfield.h
+ * backport is found regardless of -I ordering.
  */
+#include "linux/bitfield.h"
 
 /* ---------------------------------------------------------------------------------------------------------
  * ----------------------------------    H2C CMD DEFINITION    ------------------------------------------------
