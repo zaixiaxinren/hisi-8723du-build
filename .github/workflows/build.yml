@@ -89,7 +89,7 @@ jobs:
           make ARCH=arm \
                CROSS_COMPILE=arm-linux-gnueabihf- \
                KSRC=$GITHUB_WORKSPACE/linux-3.18.24 \
-               KCFLAGS="-Wno-error -Wno-misleading-indentation -Wno-int-in-bool-context" \
+               KCFLAGS="-march=armv7-a -Wno-error -Wno-misleading-indentation -Wno-int-in-bool-context" \
                modules -j$(nproc) 2>&1 | tee ../build.log
           exit ${PIPESTATUS[0]}
 
