@@ -1,0 +1,103 @@
+name: Build 8723du for Hi3798MV200H (3.18.24)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential bc flex bison libssl-dev \
+            gcc-arm-linux-gnueabihf xz-utils cpio rsync
+          echo "--- cross gcc ---"
+          arm-linux-gnueabihf-gcc --version | head -2
+
+      - name: Fetch Linux 3.18.24
+        run: |
+          if [ ! -f linux-3.18.24.tar.xz ]; then
+            wget -q https://cdn.kernel.org/pub/linux/kernel/v3.x/linux-3.18.24.tar.xz
+          fi
+          tar xf linux-3.18.24.tar.xz
+          echo "kernel tree ready"
+
+      - name: Configure kernel to match target vermagic
+        run: |
+          cd linux-3.18.24
+          make ARCH=arm multi_v7_defconfig
+          ./scripts/config --file .config \
+            --enable  SMP \
+            --disable PREEMPT \
+            --enable  PREEMPT_NONE \
+            --enable  MODULE_UNLOAD \
+            --disable MODVERSIONS \
+            --set-str LOCALVERSION "-hi3798mv2x" \
+            --enable  CFG80211 \
+            --enable  WIRELESS \
+            --enable  RFKILL
+          make ARCH=arm olddefconfig
+          echo "=== vermagic-relevant config ==="
+          grep -E "^CONFIG_(SMP|PREEMPT|PREEMPT_NONE|MODULE_UNLOAD|MODVERSIONS|LOCALVERSION|MODULES)=" .config || true
+          echo "=== compute expected vermagic ==="
+          grep -E "^VERSION|^PATCHLEVEL|^SUBLEVEL|^EXTRAVERSION" Makefile | head -4
+
+      - name: modules_prepare
+        run: |
+          cd linux-3.18.24
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- modules_prepare -j$(nproc) 2>&1 | tail -30
+          echo "--- verify generated headers ---"
+          ls -l include/generated/autoconf.h include/generated/utsrelease.h 2>/dev/null || true
+          cat include/generated/utsrelease.h 2>/dev/null || true
+
+      - name: Build 8723du module
+        id: build
+        continue-on-error: true
+        run: |
+          cd 8723du
+          make ARCH=arm \
+               CROSS_COMPILE=arm-linux-gnueabihf- \
+               KSRC=$GITHUB_WORKSPACE/linux-3.18.24 \
+               modules -j$(nproc) 2>&1 | tee ../build.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Inspect result
+        if: always()
+        run: |
+          echo "=== ko files ==="
+          find . -name "*.ko" -exec ls -lh {} \; || echo "no .ko produced"
+          echo
+          echo "=== vermagic ==="
+          for f in $(find . -name "*.ko"); do
+            echo "$f:"
+            strings "$f" | grep -m1 "^vermagic=" || echo "  (no vermagic found)"
+          done
+          echo
+          echo "=== last 80 lines of build log ==="
+          tail -80 build.log 2>/dev/null || echo "(no log)"
+
+      - name: Fail if no module produced
+        if: always()
+        run: |
+          if ! ls 8723du/*.ko >/dev/null 2>&1; then
+            echo "::error::Compilation produced no .ko file. See build log above."
+            exit 1
+          fi
+
+      - name: Upload module
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 8723du-build-result
+          path: |
+            8723du/*.ko
+            build.log
+          if-no-files-found: warn
+          retention-days: 14
