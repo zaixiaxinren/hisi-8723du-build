@@ -29,6 +29,15 @@ jobs:
           tar xf linux-3.18.24.tar.xz
           echo "kernel tree ready"
 
+      - name: Patch headers for gcc 6-13
+        run: |
+          cd linux-3.18.24
+          echo "3.18 only ships compiler-gcc{3,4,5}.h, add aliases for newer gcc"
+          for v in 6 7 8 9 10 11 12 13; do
+            printf '#include <linux/compiler-gcc5.h>\n' > include/linux/compiler-gcc${v}.h
+          done
+          ls -1 include/linux/compiler-gcc*.h
+
       - name: Configure kernel to match target vermagic
         run: |
           cd linux-3.18.24
@@ -37,17 +46,19 @@ jobs:
             --enable  SMP \
             --disable PREEMPT \
             --enable  PREEMPT_NONE \
+            --disable THUMB2_KERNEL \
             --enable  MODULE_UNLOAD \
             --disable MODVERSIONS \
-            --set-str LOCALVERSION "-hi3798mv2x" \
+            --enable  ARM_PATCH_PHYS_VIRT \
+            --set-str LOCALVERSION "_hi3798mv2x" \
             --enable  CFG80211 \
             --enable  WIRELESS \
             --enable  RFKILL
           make ARCH=arm olddefconfig
           echo "=== vermagic-relevant config ==="
-          grep -E "^CONFIG_(SMP|PREEMPT|PREEMPT_NONE|MODULE_UNLOAD|MODVERSIONS|LOCALVERSION|MODULES)=" .config || true
-          echo "=== compute expected vermagic ==="
-          grep -E "^VERSION|^PATCHLEVEL|^SUBLEVEL|^EXTRAVERSION" Makefile | head -4
+          grep -E "^CONFIG_(SMP|PREEMPT|PREEMPT_NONE|THUMB2_KERNEL|MODULE_UNLOAD|MODVERSIONS|ARM_PATCH_PHYS_VIRT|MODULES|CFG80211|WIRELESS|RFKILL)=" .config || true
+          grep -E "^# CONFIG_(PREEMPT|THUMB2_KERNEL|MODVERSIONS) is not set" .config || true
+          grep -E "^CONFIG_LOCALVERSION" .config || true
 
       - name: modules_prepare
         run: |
@@ -65,6 +76,7 @@ jobs:
           make ARCH=arm \
                CROSS_COMPILE=arm-linux-gnueabihf- \
                KSRC=$GITHUB_WORKSPACE/linux-3.18.24 \
+               KCFLAGS="-Wno-error -Wno-misleading-indentation -Wno-int-in-bool-context" \
                modules -j$(nproc) 2>&1 | tee ../build.log
           exit ${PIPESTATUS[0]}
 
