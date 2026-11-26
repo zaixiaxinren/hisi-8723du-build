@@ -44,7 +44,8 @@ jobs:
       - name: Configure kernel to match target vermagic
         run: |
           cd linux-3.18.24
-          make ARCH=arm multi_v7_defconfig
+          echo "--- base config: vexpress (single-platform ARMv7, selects CPU_V7) ---"
+          make ARCH=arm vexpress_defconfig
           ./scripts/config --file .config \
             --enable  SMP \
             --disable PREEMPT \
@@ -58,9 +59,11 @@ jobs:
             --enable  WIRELESS \
             --enable  RFKILL
           make ARCH=arm olddefconfig
-          echo "=== vermagic-relevant config ==="
-          grep -E "^CONFIG_(SMP|PREEMPT|PREEMPT_NONE|THUMB2_KERNEL|MODULE_UNLOAD|MODVERSIONS|ARM_PATCH_PHYS_VIRT|MODULES|CFG80211|WIRELESS|RFKILL)=" .config || true
-          grep -E "^# CONFIG_(PREEMPT|THUMB2_KERNEL|MODVERSIONS) is not set" .config || true
+          echo "=== CPU / march relevant ==="
+          grep -E "^CONFIG_(CPU_V7|CPU_32v7|ARCH_MULTI_V7|ARCH_VEXPRESS|ARM_PATCH_PHYS_VIRT|AEABI|SMP|THUMB2_KERNEL|PREEMPT|PREEMPT_NONE)=" .config || true
+          grep -E "^# CONFIG_(THUMB2_KERNEL|PREEMPT|MODVERSIONS|CPU_V7) is not set" .config || true
+          echo "=== other ==="
+          grep -E "^CONFIG_(MODULE_UNLOAD|MODULES|CFG80211|WIRELESS|RFKILL)=" .config || true
           grep -E "^CONFIG_LOCALVERSION" .config || true
 
       - name: modules_prepare
